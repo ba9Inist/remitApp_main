@@ -30,7 +30,13 @@ final class LaunchScreenModel {
             networkManager.universalRequstPost(jsonRequest: firstJsonRequest, url: firstUrl) { firstResult in
                 switch firstResult {
                 case .success(let (firstStatusCode, firstData)):
-                    self.networkManager.processingDataHttp(statusHttp: firstStatusCode, dataHttp: firstData!, jsonScheme: startImgResponceScheme.self) { (firstResult, firstError) in
+                    // Раньше здесь был force unwrap firstData — пустое тело ответа роняло приложение на старте
+                    guard let firstData = firstData else {
+                        completion(.failure(NSError(domain: "", code: -1, userInfo: ["message": "Сервер вернул пустой ответ (код \(firstStatusCode))"])))
+                        return
+                    }
+
+                    self.networkManager.processingDataHttp(statusHttp: firstStatusCode, dataHttp: firstData, jsonScheme: startImgResponceScheme.self) { (firstResult, firstError) in
                         if let firstResult = firstResult {
                             let urlPhoto1C = firstResult.urlPhoto
                             self.networkManager.setubHeadImageView(urlString: urlPhoto1C) { image in
@@ -53,9 +59,11 @@ final class LaunchScreenModel {
         }
     }
     
+    // Возвращает true, если сохранён UUID пользователя из 1С, то есть вход уже выполнялся.
+    // Здесь стоял отладочный `return false`, из-за которого автовход и биометрия никогда
+    // не срабатывали: каждый запуск уводил на экран входа.
     func checkAuthorization() -> Bool {
-        return false
-       //return UserDefaults.standard.string(forKey: "uuidUser1C")?.isEmpty == false
+        return UserDefaults.standard.string(forKey: "uuidUser1C")?.isEmpty == false
     }
     
     func createUuidApple() {

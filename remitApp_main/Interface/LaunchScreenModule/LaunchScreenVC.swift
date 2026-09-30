@@ -13,7 +13,12 @@ class LaunchScreenVC: UIViewController {
     weak var coordinator: AppCoordinator?
     private let launchScreenModel = LaunchScreenModel()
     private let biometricModel = biometricManager.shared
-    
+
+    private static let biometryReason = "Для продолжения потребуется проверка лица или отпечатка пальца."
+
+    // Защита от повторного запуска сценария входа при повторном viewDidAppear
+    private var didStartAuthFlow = false
+
     private lazy var logoRemit: UIImageView = {
         let logoRemit = UIImageView()
         logoRemit.backgroundColor = .white
@@ -31,66 +36,103 @@ class LaunchScreenVC: UIViewController {
         view.addSubview(logoRemit)
         logoRemit.addSubview(indicatorLoad)
         setubConstrains()
-        launchScreenModel.getHeadImageView { result in
-            switch result {
-            case .success(let image):
-                if let image = image {
-                    self.logoRemit.image = image
+        launchScreenModel.getHeadImageView { [weak self] result in
+            // Загрузчик картинки отдаёт часть ветвей отказа не с главного потока,
+            // поэтому работу с UI выполняем явно на главном
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let image):
+                    if let image = image {
+                        self?.logoRemit.image = image
+                    }
+                case .failure(let error):
+                    // Картинка заставки необязательна: молча остаёмся с фоном по умолчанию,
+                    // алерт на старте из-за декоративного изображения только мешает входу
+                    print("Не удалось загрузить изображение заставки:", error.localizedDescription)
                 }
-            case .failure(let error):
-                CustomAlert().showFastAlertError(textError: error.localizedDescription)
             }
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        // viewDidAppear может вызваться повторно — сценарий входа должен запуститься один раз
+        guard !didStartAuthFlow else { return }
+        didStartAuthFlow = true
+
         indicatorLoad.startAnimating()
         launchScreenModel.createUuidApple()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self = self else { return }
             guard let coordinator = self.coordinator else {
                 print("Ошибка: координатор не найден!")
                 return
             }
-            if self.launchScreenModel.checkAuthorization() {
-                self.biometricModel.authenticate(reason: "Для продолжения потребуется проверка лица или отпечатка пальца.", allowPasswordFallback: true) { result in
-                    switch result {
-                    case .success():
-                        DispatchQueue.main.async {
-                            coordinator.showHomeScreenVC()
-                        }
-                    case .failure(let error):
-                        DispatchQueue.main.async {
-                            if error is BiometryNotEnrolledError {
-                                CustomAlert().showFastAlertError(textError: "Ваше устройство не зарегистрировано для использования биометрии. Вы можете настроить её в настройках устройства.")
-                            } else {
-                                let alert = UIAlertController(title: "Ошибка авторизации", message: "Что-то пошло не так. Пробовали ли вы ввести пароль устройства?", preferredStyle: .alert)
-                                alert.addAction(UIAlertAction(title: "Ввести пароль", style: .default) { _ in
-                                    self.biometricModel.retryAuthentication(reason: "Для продолжения потребуется проверка лица или отпечатка пальца.", allowPasswordFallback: true) { repeatResult in
-                                        switch repeatResult {
-                                        case .success():
-                                            DispatchQueue.main.async {
 
-                                                coordinator.showHomeScreenVC()
-                                            }
-                                        case .failure(let repeatError):
-                                            DispatchQueue.main.async {
-                                                CustomAlert().showFastAlertError(textError: repeatError.localizedDescription)
-                                                print("Ошибка при повторной попытке биометрической авторизации:", repeatError.localizedDescription)
-                                            }
-                                        }
-                                    }
-                                })
-                                alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-                                self.present(alert, animated: true)
-                            }
-                        }
+            self.indicatorLoad.stopAnimating()
+
+            guard self.launchScreenModel.checkAuthorization() else {
+                coordinator.showLoginVC()
+                return
+            }
+
+            self.requestBiometry(coordinator: coordinator)
+        }
+    }
+
+    // Запрос биометрии. Любой отказ обязан куда-то вести: раньше ветки
+    // «не настроена биометрия», «Отмена» и неудачный повтор показывали алерт
+    // и оставляли пользователя на экране запуска без выхода.
+    private func requestBiometry(coordinator: AppCoordinator) {
+        biometricModel.authenticate(reason: Self.biometryReason, allowPasswordFallback: true) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+
+                switch result {
+                case .success():
+                    coordinator.showHomeScreenVC()
+
+                case .failure(let error):
+                    if error is BiometryNotEnrolledError {
+                        // Биометрия на устройстве недоступна в принципе — повторять бессмысленно,
+                        // уводим на обычный вход по номеру телефона
+                        self.showDeadEndFreeAlert(
+                            title: "Биометрия недоступна",
+                            message: "Устройство не настроено для проверки лица или отпечатка. Настроить её можно в настройках устройства, а сейчас войдите по номеру телефона.",
+                            retry: nil,
+                            coordinator: coordinator
+                        )
+                    } else {
+                        print("Ошибка биометрической авторизации:", error.localizedDescription)
+                        self.showDeadEndFreeAlert(
+                            title: "Не удалось подтвердить личность",
+                            message: "Попробуйте ещё раз или войдите по номеру телефона.",
+                            retry: { [weak self] in self?.requestBiometry(coordinator: coordinator) },
+                            coordinator: coordinator
+                        )
                     }
                 }
-            } else{
-                coordinator.showLoginVC()
             }
-            self.indicatorLoad.stopAnimating()
         }
+    }
+
+    // Алерт, из которого всегда есть выход: повтор (если он осмыслен) либо вход по номеру
+    private func showDeadEndFreeAlert(title: String,
+                                      message: String,
+                                      retry: (() -> Void)?,
+                                      coordinator: AppCoordinator) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+
+        if let retry = retry {
+            alert.addAction(UIAlertAction(title: "Повторить", style: .default) { _ in retry() })
+        }
+
+        alert.addAction(UIAlertAction(title: "Войти по номеру телефона", style: .default) { _ in
+            coordinator.showLoginVC()
+        })
+
+        present(alert, animated: true)
     }
     
    private func setubConstrains(){
@@ -106,11 +148,6 @@ class LaunchScreenVC: UIViewController {
             $0.left.equalTo(view.snp.left).inset(50)
             $0.right.equalTo(view.snp.right).inset(50)
         }
-    }
-    
-    private func loadDataRemit() {
-       let VC = HomeScreenVC()
-        present(VC, animated: true)
     }
     
 }

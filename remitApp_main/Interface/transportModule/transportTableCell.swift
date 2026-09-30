@@ -17,12 +17,18 @@ struct routeCellData {
     let time: Date
 }
 
+// Ячейка только сообщает о подтверждённой записи. Сетевой запрос и обновление
+// модели выполняет контроллер: раньше этим занималась сама ячейка и правила
+// массивы контроллера напрямую.
+protocol TransportCellDelegate: AnyObject {
+    func didConfirmWaiting(for cell: transportTableCell, dataRoute: routeCellData)
+}
+
 class transportTableCell: UITableViewCell {
-    
+
     static let reuseIdentifier = "CustomTableViewCell"
-    weak var viewController: transortVC?
-    let transportModelInstance = transportModel()
-    
+    weak var delegate: TransportCellDelegate?
+
     var routeData = routeCellData(
         idRoute1C: "",
         bus: false,
@@ -138,61 +144,19 @@ class transportTableCell: UITableViewCell {
     @objc private func signUpForStop() {
         let configAlert = ConfigAlert(
             title: "Запись на остановку",
-            message: "Записаться на остановку?",
+            message: "Записаться на остановку \(routeData.nameTransportationStop)?",
             type: .alert,
             actions: [
-                UIAlertAction(title: "Да", style: .default) { _ in
-                    self.handleSignUpConfirmation()
+                UIAlertAction(title: "Да", style: .default) { [weak self] _ in
+                    guard let self = self else { return }
+                    self.delegate?.didConfirmWaiting(for: self, dataRoute: self.routeData)
                 },
-                UIAlertAction(title: "Нет", style: .cancel) { _ in
-                }
+                UIAlertAction(title: "Нет", style: .cancel)
             ]
         )
         CustomAlert().showAlert(config: configAlert)
     }
 
-    private func handleSignUpConfirmation() {
-        transportModelInstance.signUpForStop(dataRoute: routeData) { waitingPeople in
-            DispatchQueue.main.async {
-                self.routeData.countPeopleTransportationStop = waitingPeople
-                self.countPeople.text = waitingPeople.description
-                self.countPeople.isHidden = !(waitingPeople > 0)
-                self.imgPeople.isHidden = !(waitingPeople > 0)
-
-                if let viewController = self.viewController,
-                   let parentTableView = self.superview as? UITableView,
-                   let indexPath = parentTableView.indexPath(for: self) {
-                    if viewController.busSchedule {
-                        
-                        for main in 0..<viewController.busArray.count{
-                            for sub in 0..<viewController.busArray[main].dataRoute.count {
-                                if sub != indexPath.row {
-                                    viewController.busArray[main].dataRoute[sub].countPeopleTransportationStop = 0
-                                    
-                                } else {
-                                    viewController.busArray[main].dataRoute[sub].countPeopleTransportationStop = waitingPeople
-                                }
-                            }
-                        }
-                    } else {
-                        
-                        for main in 0..<viewController.microBusArray.count{
-                            for sub in 0..<viewController.microBusArray[main].dataRoute.count {
-                                if sub != indexPath.row {
-                                    viewController.microBusArray[main].dataRoute[sub].countPeopleTransportationStop = 0
-                                    
-                                } else {
-                                    viewController.microBusArray[main].dataRoute[sub].countPeopleTransportationStop = waitingPeople
-                                }
-                            }
-                        }
-                    }
-                    parentTableView.reloadData()
-                }
-            }
-        }
-    }
-    
 
     
     

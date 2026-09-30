@@ -40,23 +40,24 @@ class transortVC: UIViewController {
         transportViewInstance.transportTable.register(transportTableCell.self,
                                                       forCellReuseIdentifier: transportTableCell.reuseIdentifier)
         
-        transportModelInstance.getScheduleBus { schedules in
-            for route in schedules {
-                let newRoute = transportRoute(
-                    routeName: route.routeName,
-                    idRoute1C: route.idRoute1C,
-                    bus: route.bus,
-                    dataRoute: route.dataRoute
-                )
-                
-                if route.bus {
-                    self.busArray.append(newRoute)
-                } else {
-                    self.microBusArray.append(newRoute)
+        transportModelInstance.getScheduleBus { [weak self] schedules in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+
+                // Очищаем перед наполнением: иначе повторная загрузка дублировала строки
+                self.busArray.removeAll()
+                self.microBusArray.removeAll()
+
+                for route in schedules {
+                    if route.bus {
+                        self.busArray.append(route)
+                    } else {
+                        self.microBusArray.append(route)
+                    }
                 }
+
+                self.transportViewInstance.transportTable.reloadData()
             }
-            
-            self.transportViewInstance.transportTable.reloadData()
         }
         
         transportViewInstance.busButton.addTarget(self, action: #selector(setubBusTable), for: .touchUpInside)
@@ -161,10 +162,42 @@ extension transortVC: UITableViewDataSource {
         )
         
         cell.configure(dataCell: dataCell)
-        cell.viewController = self
-        
+        cell.delegate = self
+
         return cell
     }
-    
-    
+
+
+}
+
+// MARK: - TransportCellDelegate
+
+extension transortVC: TransportCellDelegate {
+
+    func didConfirmWaiting(for cell: transportTableCell, dataRoute: routeCellData) {
+        guard let indexPath = transportViewInstance.transportTable.indexPath(for: cell) else { return }
+
+        transportModelInstance.signUpForStop(dataRoute: dataRoute) { [weak self] waitingPeople in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+
+                // Обновляем только ту остановку, на которую записались.
+                // Раньше ячейка обнуляла счётчик у всех остальных остановок во всех
+                // маршрутах, хотя это число всех ожидающих, а не только текущего
+                // пользователя, — данные по другим остановкам просто исчезали с экрана.
+                let routeIndex = 0
+                if self.busSchedule {
+                    guard self.busArray.indices.contains(routeIndex),
+                          self.busArray[routeIndex].dataRoute.indices.contains(indexPath.row) else { return }
+                    self.busArray[routeIndex].dataRoute[indexPath.row].countPeopleTransportationStop = waitingPeople
+                } else {
+                    guard self.microBusArray.indices.contains(routeIndex),
+                          self.microBusArray[routeIndex].dataRoute.indices.contains(indexPath.row) else { return }
+                    self.microBusArray[routeIndex].dataRoute[indexPath.row].countPeopleTransportationStop = waitingPeople
+                }
+
+                self.transportViewInstance.transportTable.reloadRows(at: [indexPath], with: .none)
+            }
+        }
+    }
 }

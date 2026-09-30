@@ -109,8 +109,13 @@ final class ChatModel {
                             completion(false)
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался.
+                    // Алерт здесь намеренно не показываем — метод вызывается опросом раз в минуту,
+                    // всплывающее окно каждые 60 секунд было бы хуже молчания.
+                    completion(false)
                 }
-                
+
             case .failure(let error):
                 let config = ConfigAlert(title: "Ошибка", message: error.localizedDescription, type: .alert, actions: [])
                 CustomAlert().showAlert(config: config)

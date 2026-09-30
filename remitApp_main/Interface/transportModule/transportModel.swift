@@ -112,8 +112,13 @@ final class transportModel {
                             completion([transportRoute]())
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался и расписание не загружалось молча
+                    let config = ConfigAlert(title: "Ошибка", message: "Сервер вернул пустой ответ (код \(statusCode))", type: .alert, actions: [])
+                    CustomAlert().showAlert(config: config)
+                    completion([transportRoute]())
                 }
-                
+
             case .failure(let error):
                 let config = ConfigAlert(title: "Ошибка", message: error.localizedDescription, type: .alert, actions: [])
                 CustomAlert().showAlert(config: config)
@@ -216,8 +221,13 @@ final class transportModel {
                             completion(0)
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался и запись на остановку молча терялась
+                    let config = ConfigAlert(title: "Ошибка", message: "Сервер вернул пустой ответ (код \(statusCode))", type: .alert, actions: [])
+                    CustomAlert().showAlert(config: config)
+                    completion(0)
                 }
-                
+
             case .failure(let error):
                 let config = ConfigAlert(title: "Ошибка", message: error.localizedDescription, type: .alert, actions: [])
                 CustomAlert().showAlert(config: config)
@@ -315,8 +325,13 @@ final class transportModel {
                             completion(coordinates)
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался и карта не открывалась молча
+                    let config = ConfigAlert(title: "Ошибка", message: "Сервер вернул пустой ответ (код \(statusCode))", type: .alert, actions: [])
+                    CustomAlert().showAlert(config: config)
+                    completion(coordinates)
                 }
-                
+
             case .failure(let error):
                 let config = ConfigAlert(title: "Ошибка", message: error.localizedDescription, type: .alert, actions: [])
                 CustomAlert().showAlert(config: config)

@@ -80,8 +80,13 @@ final class LoginModel {
                             completion(false)
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался и кнопка входа оставалась заблокированной
+                    let config = ConfigAlert(title: "Ошибка", message: "Сервер вернул пустой ответ (код \(statusCode))", type: .alert, actions: [])
+                    CustomAlert().showAlert(config: config)
+                    completion(false)
                 }
-                
+
             case .failure(let error):
                 let config = ConfigAlert(title: "Ошибка", message: error.localizedDescription, type: .alert, actions: [])
                 CustomAlert().showAlert(config: config)
@@ -159,8 +164,13 @@ final class LoginModel {
                             completion(false)
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался и кнопка входа оставалась заблокированной
+                    let config = ConfigAlert(title: "Ошибка", message: "Сервер вернул пустой ответ (код \(statusCode))", type: .alert, actions: [])
+                    CustomAlert().showAlert(config: config)
+                    completion(false)
                 }
-                
+
             case .failure(let error):
                 let config = ConfigAlert(title: "Ошибка", message: error.localizedDescription, type: .alert, actions: [])
                 CustomAlert().showAlert(config: config)

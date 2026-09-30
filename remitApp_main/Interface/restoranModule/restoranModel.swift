@@ -101,8 +101,13 @@ final class restoranModel {
                             completion(menu1C)
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался и экран оставался заблокированным
+                    let config = ConfigAlert(title: "Ошибка", message: "Сервер вернул пустой ответ (код \(statusCode))", type: .alert, actions: [])
+                    CustomAlert().showAlert(config: config)
+                    completion(menu1C)
                 }
-                
+
             case .failure(let error):
                 let config = ConfigAlert(title: "Ошибка", message: error.localizedDescription, type: .alert, actions: [])
                 CustomAlert().showAlert(config: config)

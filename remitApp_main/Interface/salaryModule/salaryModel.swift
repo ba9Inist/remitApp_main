@@ -73,8 +73,12 @@ final class salaryModel {
                             completion(salaryData)
                         }
                     }
+                } else {
+                    // Пустое тело ответа: без этой ветки completion не вызывался и экран оставался заблокированным
+                    CustomAlert().showFastAlertError(textError: "Сервер вернул пустой ответ (код \(statusCode))")
+                    completion(salaryData)
                 }
-                
+
             case .failure(let error):
                 CustomAlert().showFastAlertError(textError: "Ответ сервере не положительный: \(error.localizedDescription)")
                 completion(salaryData)

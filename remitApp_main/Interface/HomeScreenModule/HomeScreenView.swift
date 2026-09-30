@@ -8,6 +8,16 @@
 import UIKit
 import SnapKit
 
+
+struct size {
+    let centerX: Bool
+    let centerY: Bool
+    let top: Int?
+    let left: Int?
+    let right: Int?
+    let bottom: Int?
+}
+
 final class HomeScreenView: UIView {
     
     private let safeView: UIView = {
@@ -27,6 +37,8 @@ final class HomeScreenView: UIView {
         img.backgroundColor = .lightGray
         img.clipsToBounds = true
         img.layer.cornerRadius = 10
+        img.contentMode = .scaleToFill
+        img.isUserInteractionEnabled = true
         return img
     }()
     
@@ -34,7 +46,6 @@ final class HomeScreenView: UIView {
         let surname = UILabel()
         surname.font = UIFont.systemFont(ofSize: 20, weight: .bold)
         surname.textColor = .darkGray
-        surname.text = "Голубев"
         return surname
     }()
     
@@ -42,7 +53,6 @@ final class HomeScreenView: UIView {
         let nameProfile = UILabel()
         nameProfile.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         nameProfile.textColor = .darkGray
-        nameProfile.text = "Егор Дмитриевич"
         return nameProfile
     }()
     
@@ -56,7 +66,6 @@ final class HomeScreenView: UIView {
         let rankProfile = UILabel()
         rankProfile.font = UIFont.systemFont(ofSize: 12, weight: .regular)
         rankProfile.textColor = .darkGray
-        rankProfile.text = "Инженер - программист"
         return rankProfile
     }()
     
@@ -64,7 +73,6 @@ final class HomeScreenView: UIView {
         let experienceProfile = UILabel()
         experienceProfile.font = UIFont.systemFont(ofSize: 12, weight: .regular)
         experienceProfile.textColor = .darkGray
-        experienceProfile.text = "Стаж: 3"
         return experienceProfile
     }()
     
@@ -72,35 +80,20 @@ final class HomeScreenView: UIView {
         let competenceProfile = UILabel()
         competenceProfile.font = UIFont.systemFont(ofSize: 12, weight: .regular)
         competenceProfile.textColor = .darkGray
-        competenceProfile.text = "Компетенции: 0"
         return competenceProfile
     }()
     
-    private let stackUiButton1: UIStackView = {
-        let config = stackConfig(axis: .horizontal,
-                                 spacing: 10,
-                                 distribution: .fillEqually,
-                                 arrangedSubviews: HomeScreenModel().oneRow())
-        let stack = CustomStackView(config: config)
-        return stack
+    
+    private lazy var stackUiButton1: UIStackView = {
+        return initStackButton(arrayButton: [buttonVacation, buttonQuestion,buttonBus, buttonSalary])
     }()
     
-    private let stackUiButton2: UIStackView = {
-        let config = stackConfig(axis: .horizontal,
-                                 spacing: 10,
-                                 distribution: .fillEqually,
-                                 arrangedSubviews: HomeScreenModel().twoRow())
-        let stack = CustomStackView(config: config)
-        return stack
+    private lazy var stackUiButton2: UIStackView = {
+        return initStackButton(arrayButton: [buttonGear, buttonCompetition, buttonLoyality, buttonRestoran])
     }()
     
-    private let stackUiButton3: UIStackView = {
-        let config = stackConfig(axis: .horizontal,
-                                 spacing: 10,
-                                 distribution: .fillEqually,
-                                 arrangedSubviews: HomeScreenModel().threeRow())
-        let stack = CustomStackView(config: config)
-        return stack
+    private lazy var stackUiButton3: UIStackView = {
+        return initStackButton(arrayButton: [buttonStudent, buttonMentor, buttonSber, buttonTonar])
     }()
     
     private let lineFeed : UIView = {
@@ -137,10 +130,247 @@ final class HomeScreenView: UIView {
     }()
     
     lazy var feedTable: UITableView = {
-       let table = UITableView()
-        table.rowHeight = 40
+        let table = UITableView()
+        table.backgroundColor = .white
+        table.estimatedRowHeight = 40
+        table.rowHeight = UITableView.automaticDimension
         return table
     }()
+    
+    var indicatorLoad: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .large)
+        indicator.color = .darkGray
+        indicator.isHidden = true
+        return indicator
+    }()
+    
+    lazy var buttonVacation: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .red
+        button.layer.cornerRadius = 10
+        button.tintColor = .white
+        button.tag = ButtonName.vacation.rawValue
+        let img = UIImageView()
+        img.image = .caseVacation
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 2, left: 2, right: 2, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        button.addSubview(dayVacation)
+        dayVacation.snp.makeConstraints {
+            $0.centerX.equalTo(button.snp.centerX)
+            $0.centerY.equalTo(button.snp.centerY)
+        }
+        return button
+    }()
+    
+    var dayVacation: UILabel = {
+        let label = UILabel()
+        label.textColor = .white
+        label.textAlignment = .center
+        label.font = UIFont.systemFont(ofSize: 20, weight: .bold)
+        return label
+    }()
+    
+    lazy var buttonQuestion: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .systemGreen
+        button.layer.cornerRadius = 10
+        button.tag = ButtonName.question.rawValue
+        let img = UIImageView()
+        img.image = .chat
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonBus: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .systemYellow
+        button.layer.cornerRadius = 10
+        button.tintColor = .white
+        button.tag = ButtonName.bus.rawValue
+        let img = UIImageView()
+        img.image = UIImage(systemName: "bus.fill")!
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonSalary: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .blue
+        button.layer.cornerRadius = 10
+        button.tintColor = .white
+        button.tag = ButtonName.calendar.rawValue
+        let img = UIImageView()
+        img.image = UIImage(systemName: "calendar")!
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonGear: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .brown
+        button.layer.cornerRadius = 10
+        button.tintColor = .white
+        button.tag = ButtonName.setting.rawValue
+        
+        let img = UIImageView()
+        img.image = UIImage(systemName: "gear")!
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonCompetition: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .purple
+        button.layer.cornerRadius = 10
+        button.tag = ButtonName.competence.rawValue
+        let img = UIImageView()
+        img.image = .listCompetitions
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonLoyality: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .lightGray
+        button.layer.cornerRadius = 10
+        button.tintColor = .white
+        button.tag = ButtonName.franchise.rawValue
+        let img = UIImageView()
+        img.image = UIImage(systemName: "basket.fill")
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonRestoran: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = UIColor(named: "customCyan")
+        button.layer.cornerRadius = 10
+        button.tag = ButtonName.food.rawValue
+        let img = UIImageView()
+        img.image = .food
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonStudent: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .orange
+        button.layer.cornerRadius = 10
+        button.tag = ButtonName.student.rawValue
+        let img = UIImageView()
+        img.image =  .student
+        img.contentMode = .scaleAspectFit
+        img.tintColor = .white
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonMentor: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .systemBlue
+        button.layer.cornerRadius = 10
+        button.tag = ButtonName.teacher.rawValue
+        
+        let img = UIImageView()
+        img.image =  .teacher
+        img.contentMode = .scaleAspectFit
+        img.tintColor = .white
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonSber: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = UIColor(named: "customGreen")
+        button.layer.cornerRadius = 10
+        button.tintColor = .white
+        button.tag = ButtonName.sber.rawValue
+        let img = UIImageView()
+        img.image = UIImage(systemName: "cross.case.fill")!
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 10, left: 10, right: 10, bottom: 10)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        return button
+    }()
+    
+    lazy var buttonTonar: UIButton = {
+        let button = UIButton()
+        button.backgroundColor = .darkGray
+        button.layer.cornerRadius = 10
+        button.tintColor = .white
+        button.tag = ButtonName.tonar.rawValue
+        let img = UIImageView()
+        img.image = .tonar
+        img.contentMode = .scaleAspectFit
+        img.clipsToBounds = true
+        button.addSubview(img)
+        let size = size(centerX: false, centerY: false, top: 5, left: 7, right: 7, bottom: 7)
+        setubUniversalImgButton(button: button, imgView: img, size: size)
+        button.addSubview(tonarWeight)
+        tonarWeight.snp.makeConstraints {
+            $0.centerX.equalTo(button.snp.centerX)
+            $0.centerY.equalTo(button.snp.centerY)
+        }
+        return button
+    }()
+    
+    var tonarWeight: UILabel = {
+        let label = UILabel()
+        label.textColor = .white
+        label.textAlignment = .center
+        label.font = UIFont.systemFont(ofSize: 20, weight: .bold)
+        return label
+    }()
+    
+//    lazy var loginButton: UIButton = {
+//        let button = UIButton()
+//        button.backgroundColor = .clear
+//        button.setImage(<#T##image: UIImage?##UIImage?#>, for: .normal)
+//        button.layer.cornerRadius = 10
+//        button.tintColor = .white
+//        return button
+//    }()
+    
+    
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -153,9 +383,9 @@ final class HomeScreenView: UIView {
     
     private func setubUI() {
         
-        self.backgroundColor = .systemBackground
+        self.backgroundColor = .white
         
-        [safeView, backgroundColorProfile,stackUiButton1, stackUiButton2, stackUiButton3, lineFeed, feedTable].forEach
+        [safeView, backgroundColorProfile, stackUiButton1, stackUiButton2, stackUiButton3, lineFeed, feedTable, indicatorLoad].forEach
         { addSubview($0) }
         [imgProfile, lineTitle, stackUiMain, stackUiSub].forEach { backgroundColorProfile.addSubview($0) }
         lineFeed.addSubview(titleFeed)
@@ -194,8 +424,9 @@ final class HomeScreenView: UIView {
         }
         
         stackUiSub.snp.makeConstraints {
-            $0.top.equalTo(lineTitle.snp.bottom).inset(-10)
+            $0.top.equalTo(lineTitle.snp.bottom)
             $0.left.equalTo(imgProfile.snp.right).inset(-20)
+            $0.bottom.equalTo(backgroundColorProfile.snp.bottom)
         }
         
         stackUiButton1.snp.makeConstraints {
@@ -239,6 +470,54 @@ final class HomeScreenView: UIView {
             $0.bottom.equalTo(self.snp.bottom)
         }
         
+        indicatorLoad.snp.makeConstraints {
+            $0.centerX.equalTo(self.snp.centerX)
+            $0.centerY.equalTo(self.snp.centerY)
+        }
+        
+    }
+    
+    private func initStackButton(arrayButton: [UIButton]) -> UIStackView{
+        let config = stackConfig(axis: .horizontal,
+                                 spacing: 10,
+                                 distribution: .fillEqually,
+                                 arrangedSubviews: arrayButton)
+        let stack = CustomStackView(config: config)
+        return stack
+    }
+    
+    private func setubUniversalImgButton(button: UIButton, imgView: UIImageView, size: size) {
+        imgView.snp.makeConstraints {
+            
+            if size.centerX {
+                $0.centerX.equalTo(button.snp.centerX)
+            }
+            
+            if size.centerY {
+                $0.centerY.equalTo(button.snp.centerY)
+            }
+            
+            if size.top != nil {
+                let top = size.top!
+                $0.top.equalTo(button.snp.top).inset(top)
+            }
+            
+            if size.left != nil {
+                let left = size.left!
+                $0.left.equalTo(button.snp.left).inset(left)
+            }
+            
+            if size.right != nil {
+                let right = size.right!
+                $0.right.equalTo(button.snp.right).inset(right)
+            }
+            
+            if size.bottom != nil {
+                let bottom = size.bottom!
+                $0.bottom.equalTo(button.snp.bottom).inset(bottom)
+            }
+            
+        }
     }
     
 }

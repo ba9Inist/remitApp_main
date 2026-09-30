@@ -16,6 +16,11 @@ struct ConfigAlert {
 }
 
 final class CustomAlert {
+    
+    func showFastAlertError(textError: String) {
+        let config = ConfigAlert(title: "Ошибка", message: textError, type: .alert, actions: [])
+        showAlert(config: config)
+    }
 
     func showAlert(config: ConfigAlert) {
         let alert = UIAlertController(title: config.title, message: config.message, preferredStyle: config.type)

@@ -10,7 +10,19 @@ import SnapKit
 
 class VacationVC: UIViewController {
     
-    private let vacationView = VacationView()
+    private var vacationView: VacationView
+    private let vacationModel = VacationModel()
+    private var arrayVac = [vacation]()
+
+    init() {
+        self.vacationView = VacationView()
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     
     override func loadView() {
         view = vacationView
@@ -21,7 +33,9 @@ class VacationVC: UIViewController {
         vacationView.delegate = self
         vacationView.vacationTable.delegate = self
         vacationView.vacationTable.dataSource = self
-        vacationView.vacationTable.register(UITableViewCell.self, forCellReuseIdentifier: "cellID")
+        vacationView.vacationTable.register(CustomTableViewCellVacation.self, forCellReuseIdentifier: CustomTableViewCellVacation.reuseIdentifier)
+        arrayVac = vacationModel.fetchArrayVacations()
+        vacationView.vacationTable.reloadData()
         vacationView.quantDay.delegate = self
         navigationController?.navigationBar.tintColor = .white
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
@@ -77,7 +91,7 @@ extension VacationVC: VacationViewDelegate {
     
     func didSelectButtonDoneKeyboard() {
         vacationView.quantDay.resignFirstResponder()
-        print(1)
+        //print(1)
     }
     
     func didSelectDate() {
@@ -96,10 +110,27 @@ extension VacationVC: VacationViewDelegate {
     }
     
     func didSelectButtonVacation() {
-        print(1)
+        
+        guard let text = vacationView.labelDateValue.text, !text.isEmpty else {
+            CustomAlert().showFastAlertError(textError: "Не заполнена дата начала отпуска")
+            return
+        }
+        
+        guard let text = vacationView.quantDay.text, !text.isEmpty else {
+            CustomAlert().showFastAlertError(textError: "Не заполнено количество дней")
+            return
+        }
+        
+        vacationModel.createStatementVacation(dateVacation: vacationView.labelDateValue.text!, quantDay: vacationView.quantDay.text!) { success in
+            if success {
+                DispatchQueue.main.async {
+                    self.vacationView.quantDay.text = ""
+                    self.vacationView.labelDateValue.text = ""
+                }
+            }
+        }
+        
     }
-    
-    
 }
 
 extension VacationVC: UITableViewDelegate {
@@ -108,12 +139,31 @@ extension VacationVC: UITableViewDelegate {
 
 extension VacationVC: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 0
+        return arrayVac.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell()
+        let cell = tableView.dequeueReusableCell(
+            withIdentifier: CustomTableViewCellVacation.reuseIdentifier,
+            for: indexPath
+        ) as! CustomTableViewCellVacation
+        
+        let item = arrayVac[indexPath.row]
+        cell.configure(startDate: item.startOfVacation,
+                       endDate: item.endOfVacation,
+                       vacationDays: item.days,
+                       pastVacation: item.pastVacation)
+        cell.backgroundColor = .white
+        
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        return CustomTableViewHeaderVacation()
+    }
+    
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 50
     }
     
 }

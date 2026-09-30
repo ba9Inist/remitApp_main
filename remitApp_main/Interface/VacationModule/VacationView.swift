@@ -18,15 +18,23 @@ class VacationView: UIView {
         return view
     }()
     
+    private let customHeaderView: CustomTableViewHeaderVacation = {
+        let header = CustomTableViewHeaderVacation()
+        return header
+    }()
+    
     let vacationTable: UITableView = {
         let table = UITableView()
-        table.rowHeight = 40
+        table.estimatedRowHeight = 40
+        table.rowHeight = UITableView.automaticDimension
+        table.tintColor = UIColor.clear
+        table.backgroundColor = .white
         return table
     }()
     
     let backgroundStatement: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGray5
+        view.backgroundColor = .gray
         return view
     }()
     
@@ -121,6 +129,7 @@ class VacationView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setubUI()
+        vacationTable.tableHeaderView = customHeaderView
     }
     
     required init?(coder: NSCoder) {
@@ -129,7 +138,7 @@ class VacationView: UIView {
     
     private func setubUI() {
         
-        self.backgroundColor = .systemBackground
+        self.backgroundColor = .white
         
         [vacationTable, backgroundStatement, backgroundSafeZone].forEach{addSubview($0)}
         [headView, stackDate, stackQuant, buttonVacation].forEach {backgroundStatement.addSubview($0)}

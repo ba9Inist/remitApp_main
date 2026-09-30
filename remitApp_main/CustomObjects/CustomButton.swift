@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SnapKit
 
 struct ButtonConfig {
     let title: String?
@@ -26,13 +27,13 @@ final class CustomButton: UIButton {
     convenience init(config: ButtonConfig) {
         self.init(frame: .zero)
         
+        configureButton(with: config)
+    }
+
+    private func configureButton(with config: ButtonConfig) {
         config.title.map { setTitle($0, for: .normal) }
         config.backgroundColor.map { backgroundColor = $0 }
-        if config.systemIconNameBool {
-            config.systemIconName.map { setImage(UIImage(systemName: $0), for: .normal) }
-        } else {
-            config.systemIconName.map { setImage(UIImage(named: $0), for: .normal) }
-        }
+        config.systemIconName.map { setImage(UIImage(systemName: $0), for: .normal) }
         config.tintColor.map { tintColor = $0 }
         config.imageEdgeInsets.map { imageEdgeInsets = $0 }
         config.contentHorizontalAlignment.map { contentHorizontalAlignment = $0 }
@@ -43,5 +44,12 @@ final class CustomButton: UIButton {
         if let pair = config.targetSelectorPair, let target = pair.target, let selector = pair.selector {
             addTarget(target, action: selector, for: .touchUpInside)
         }
+        
+    }
+
+    // Используем удобную реализацию расширения для настройки после инициализации
+    func then(block: (Self) throws -> Void) rethrows -> Self {
+        try block(self)
+        return self
     }
 }

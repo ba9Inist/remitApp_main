@@ -22,36 +22,101 @@ class MainCoordinator {
         navigationController.setViewControllers([homeVC], animated: true)
     }
     
-    func openChildVC(typeVC: ButtonName) {
+    func openChildVC(typeVC: ButtonName, userRealm: InformationUserRealm?, completion: @escaping () -> Void) {
+        
+        var nextVC: UIViewController?
         
         switch typeVC {
         case .vacation:
-            let nextVC = VacationVC()
-            navigationController.pushViewController(nextVC, animated: true)
+            nextVC = VacationVC()
         case .question:
-            let nextVC = ChatVC()
-            navigationController.pushViewController(nextVC, animated: true)
+            nextVC = ChatViewController()
         case .bus:
-            print(1)
+            nextVC = transortVC()
         case .calendar:
-            print(1)
+
+            if userRealm != nil {
+                let salaryModelInstance = salaryModel()
+                salaryModelInstance.getSalaryData { salaryData in
+                        nextVC = salaryVC(salaryData: salaryData)
+                        self.navigationController.pushViewController(nextVC ?? pageDevelopmentVC(), animated: true)
+                        completion()
+                    }
+                }
+             else {
+                nextVC = salaryVC(salaryData: salaryResponceScheme(actionName: "", additionsSalaryLastMonths: totalValueMonth(incentives: 0, mentoring: 0, deductions: 0, brigadiers: 0, hoursWorked: 0, totalPayment: 0), additionsSalaryCurrentMonths: totalValueMonth(incentives: 0, mentoring: 0, deductions: 0, brigadiers: 0, hoursWorked: 0, totalPayment: 0), LastMonthsSalary: [], CurrentMonthsSalary: []))
+            }
+            
         case .setting:
-            print(1)
+            nextVC = settingVC()
         case .competence:
-            print(1)
+            nextVC = competencyListVC()
         case .franchise:
-            print(1)
+            
+            if userRealm != nil {
+                let loyalityModelInstance = loyalityModel()
+                loyalityModelInstance.getLoyalityData(updateCheck: false) { infoloyality in
+                    if !infoloyality.result {
+                        CustomAlert().showFastAlertError(textError: infoloyality.error)
+                    } else {
+                        nextVC = loyalityVC(info: infoloyality, user: userRealm, coordinator: self)
+                        self.navigationController.pushViewController(nextVC ?? pageDevelopmentVC(), animated: true)
+                    }
+                    completion()
+                }
+            } else {
+                nextVC = loyalityVC(info: loyalityDataResponceScheme(result: false, error: "Для отображения данных, необходимо авторизироваться в приложении", UUIDUser: "", discountСard: "", ownerName: "", balanceLikes: 0, balanceLikesRub: 0, ShoppingList: []), user: nil, coordinator: self)
+            }
+            
         case .food:
-            print(1)
+
+            if userRealm != nil {
+                let restoranModelInstance = restoranModel()
+                restoranModelInstance.loadDataMenu { menu1C in
+                    if !menu1C.result {
+                        CustomAlert().showFastAlertError(textError: menu1C.error)
+                    } else {
+                        nextVC = restoranVC(menu1С: menu1C)
+                        self.navigationController.pushViewController(nextVC ?? pageDevelopmentVC(), animated: true)
+                    }
+                    completion()
+                }
+            } else {
+                nextVC = restoranVC(menu1С: menuRestoranResponseSheme(result: false, error: "Для отображения данных, необходимо авторизироваться в приложении", UUIDUser: ""))
+            }
+            
         case .student:
-            print(1)
+            nextVC = pageDevelopmentVC()
         case .teacher:
-            print(1)
+            nextVC = pageDevelopmentVC()
         case .sber:
-            print(1)
-        case .tonar:
-            print(1)
+            nextVC = SberVC()
+        case .tonar: break
         }
         
+        if nextVC != nil {
+            //navigationController.present(nextVC ?? pageDevelopmentVC(), animated: true, completion: nil)
+            navigationController.pushViewController(nextVC ?? pageDevelopmentVC(), animated: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                completion()
+            }
+            
+        }
+        
+        
+        
     }
+    
+    func openProductDetails(dataCell: dataCheck) {
+        let nextVC = checkVC(dataCheck: dataCell)
+        navigationController.present(nextVC , animated: true, completion: nil)
+        //navigationController.pushViewController(nextVC, animated: true)
+    }
+    
+    func openBarcodeFullScreen(barcodeImg: UIImage, originalBreght: CGFloat) {
+        let nextVC = barcodeVC(bacrodeCard: barcodeImg, originalBrightness: originalBreght)
+        nextVC.modalPresentationStyle = .fullScreen
+        navigationController.present(nextVC , animated: true)
+    }
+    
 }

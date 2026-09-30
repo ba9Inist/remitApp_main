@@ -11,10 +11,12 @@ import SnapKit
 class LaunchScreenVC: UIViewController {
     
     weak var coordinator: AppCoordinator?
+    private let launchScreenModel = LaunchScreenModel()
+    private let biometricModel = biometricManager.shared
     
     private lazy var logoRemit: UIImageView = {
         let logoRemit = UIImageView()
-        logoRemit.backgroundColor = .blue
+        logoRemit.backgroundColor = .white
         return logoRemit
     }()
     
@@ -23,30 +25,71 @@ class LaunchScreenVC: UIViewController {
         return indicator
     }()
     
-    private let networkManager = NetworkManager()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .red
         view.addSubview(logoRemit)
         logoRemit.addSubview(indicatorLoad)
         setubConstrains()
-        networkManager.setubHeadImageView { [weak self] image in
-            guard let self = self else { return }
-            self.logoRemit.image = image
+        launchScreenModel.getHeadImageView { result in
+            switch result {
+            case .success(let image):
+                if let image = image {
+                    self.logoRemit.image = image
+                }
+            case .failure(let error):
+                CustomAlert().showFastAlertError(textError: error.localizedDescription)
+            }
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
         indicatorLoad.startAnimating()
-        
+        launchScreenModel.createUuidApple()
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            self.indicatorLoad.stopAnimating()
             guard let coordinator = self.coordinator else {
                 print("Ошибка: координатор не найден!")
                 return
             }
-            coordinator.showLoginVC()
+            if self.launchScreenModel.checkAuthorization() {
+                self.biometricModel.authenticate(reason: "Для продолжения потребуется проверка лица или отпечатка пальца.", allowPasswordFallback: true) { result in
+                    switch result {
+                    case .success():
+                        DispatchQueue.main.async {
+                            coordinator.showHomeScreenVC()
+                        }
+                    case .failure(let error):
+                        DispatchQueue.main.async {
+                            if error is BiometryNotEnrolledError {
+                                CustomAlert().showFastAlertError(textError: "Ваше устройство не зарегистрировано для использования биометрии. Вы можете настроить её в настройках устройства.")
+                            } else {
+                                let alert = UIAlertController(title: "Ошибка авторизации", message: "Что-то пошло не так. Пробовали ли вы ввести пароль устройства?", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "Ввести пароль", style: .default) { _ in
+                                    self.biometricModel.retryAuthentication(reason: "Для продолжения потребуется проверка лица или отпечатка пальца.", allowPasswordFallback: true) { repeatResult in
+                                        switch repeatResult {
+                                        case .success():
+                                            DispatchQueue.main.async {
+
+                                                coordinator.showHomeScreenVC()
+                                            }
+                                        case .failure(let repeatError):
+                                            DispatchQueue.main.async {
+                                                CustomAlert().showFastAlertError(textError: repeatError.localizedDescription)
+                                                print("Ошибка при повторной попытке биометрической авторизации:", repeatError.localizedDescription)
+                                            }
+                                        }
+                                    }
+                                })
+                                alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+                                self.present(alert, animated: true)
+                            }
+                        }
+                    }
+                }
+            } else{
+                coordinator.showLoginVC()
+            }
+            self.indicatorLoad.stopAnimating()
         }
     }
     

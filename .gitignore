@@ -1,1 +1,13 @@
 SecretModule/
+
+# macOS
+.DS_Store
+
+# Xcode: пользовательские настройки и сборка
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+
+# Локальные настройки Claude Code
+.claude/settings.local.json

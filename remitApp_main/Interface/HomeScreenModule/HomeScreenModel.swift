@@ -7,6 +7,9 @@
 
 import Foundation
 import UIKit
+import RealmSwift
+import SwiftUI
+import SnapKit
 
 enum ButtonName: Int {
     case vacation = 1
@@ -23,160 +26,63 @@ enum ButtonName: Int {
     case tonar
 }
 
+struct news {
+    let nameNews: String
+    let textNews: String
+    let colorHex: String
+    let date: Date
+}
+
+
 final class HomeScreenModel {
     
-    func oneRow() -> [UIButton]{
+    let realm = realmManager()
+    
+    func UpdateUI(view: HomeScreenView) {
         
-        return [
-            CustomButton(config: ButtonConfig(title: nil,
-                                              backgroundColor: .red,
-                                              systemIconName: "beach.umbrella.fill",
-                                              tintColor: .white,
-                                              imageEdgeInsets: UIEdgeInsets(top: 15, left: 10, bottom: 20, right: 20),
-                                              contentHorizontalAlignment: .fill,
-                                              contentVerticalAlignment: .fill,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.vacation.rawValue)),
+        if let dataUser = realm.fetchUser() {
+            view.nameProfile.text = dataUser.name + " " + dataUser.patronymic
+            view.surnameProfile.text = dataUser.surname
+            view.rankProfile.text = dataUser.post
+            view.experienceProfile.text = "Стаж: " + String(describing: dataUser.experience)
+            view.competenceProfile.text = "Компетенции: " + String(describing: dataUser.competention ?? 0)
+            view.imgProfile.image = imgProfileDecode(photoBase64: dataUser.photoUser)
+            view.dayVacation.text = dataUser.daysVacation.description
+            view.tonarWeight.text = dataUser.countTonar.description
             
-            CustomButton(config: ButtonConfig(title: nil,
-                                              backgroundColor: .systemGreen,
-                                              systemIconName: "message",
-                                              tintColor: .white,
-                                              imageEdgeInsets: UIEdgeInsets(top: 15, left: 10, bottom: 20, right: 15),
-                                              contentHorizontalAlignment: .fill,
-                                              contentVerticalAlignment: .fill,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.question.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: nil,
-                                              backgroundColor: .systemYellow,
-                                              systemIconName: "bus.fill",
-                                              tintColor: .white,
-                                              imageEdgeInsets: UIEdgeInsets(top: 15, left: 10, bottom: 20, right: 20),
-                                              contentHorizontalAlignment: .fill,
-                                              contentVerticalAlignment: .fill,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.bus.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: nil,
-                                              backgroundColor: .systemBlue,
-                                              systemIconName: "calendar",
-                                              tintColor: .white,
-                                              imageEdgeInsets: UIEdgeInsets(top: 15, left: 10, bottom: 20, right: 20),
-                                              contentHorizontalAlignment: .fill,
-                                              contentVerticalAlignment: .fill,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.calendar.rawValue)),
-            
-        ]
-        
+            if dataUser.competention == 0 {
+                view.competenceProfile.isHidden = true
+            }
+        }
     }
     
-    func twoRow() -> [UIButton]{
+    func fetchNews() -> [news] {
+        guard let userData = realm.fetchUser() else { return [news]() }
+        var arrayNews = [news]()
         
-        return [
-            CustomButton(config: ButtonConfig(title: nil,
-                                              backgroundColor: .brown,
-                                              systemIconName: "gear",
-                                              tintColor: .white,
-                                              imageEdgeInsets: UIEdgeInsets(top: 15, left: 10, bottom: 20, right: 15),
-                                              contentHorizontalAlignment: .fill,
-                                              contentVerticalAlignment: .fill,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.setting.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: nil,
-                                              backgroundColor: .purple,
-                                              systemIconName: "book",
-                                              tintColor: .white,
-                                              imageEdgeInsets: UIEdgeInsets(top: 15, left: 10, bottom: 20, right: 20),
-                                              contentHorizontalAlignment: .fill,
-                                              contentVerticalAlignment: .fill,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.competence.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: "Лояльность",
-                                              backgroundColor: .lightGray,
-                                              systemIconName: nil,
-                                              tintColor: .white,
-                                              imageEdgeInsets: nil,
-                                              contentHorizontalAlignment: nil,
-                                              contentVerticalAlignment: nil,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.franchise.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: nil,
-                                              backgroundColor: .cyan,
-                                              systemIconName: "fork.knife.circle",
-                                              tintColor: .white,
-                                              imageEdgeInsets: UIEdgeInsets(top: 10, left: 10, bottom: 20, right: 20),
-                                              contentHorizontalAlignment: .fill,
-                                              contentVerticalAlignment: .fill,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag:  ButtonName.food.rawValue)),
-            
-        ]
-        
-        
+        arrayNews = userData.News.map { item in
+            news(nameNews: item.nameNews,
+                 textNews: item.textNews,
+                 colorHex: item.colorHex,
+                 date: item.date)
+        }
+        return arrayNews
     }
     
-    func threeRow() -> [UIButton]{
+    func imgProfileDecode(photoBase64: String) -> UIImage {
+        guard let decodedData = Data(base64Encoded: photoBase64) else {
+            print("Ошибка декодирования!")
+            return UIImage(systemName: "person")!
+        }
+
+        guard let image = UIImage(data: decodedData) else {
+            print("Ошибка создания изображения!")
+            return UIImage(systemName: "person.fill")!
+        }
         
-        return [
-            CustomButton(config: ButtonConfig(title: "Дневник ученика",
-                                              backgroundColor: .orange,
-                                              systemIconName: nil,
-                                              tintColor: .white,
-                                              imageEdgeInsets: nil,
-                                              contentHorizontalAlignment: nil,
-                                              contentVerticalAlignment: nil,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.student.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: "Дневник наставника",
-                                              backgroundColor: .blue,
-                                              systemIconName: nil,
-                                              tintColor: .white,
-                                              imageEdgeInsets: nil,
-                                              contentHorizontalAlignment: nil,
-                                              contentVerticalAlignment: nil,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.teacher.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: "Сбер здоровье",
-                                              backgroundColor: .green,
-                                              systemIconName: nil,
-                                              tintColor: .white,
-                                              imageEdgeInsets: nil,
-                                              contentHorizontalAlignment: nil,
-                                              contentVerticalAlignment: nil,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.sber.rawValue)),
-            
-            CustomButton(config: ButtonConfig(title: "Тонар",
-                                              backgroundColor: .darkGray,
-                                              systemIconName: nil,
-                                              tintColor: .white,
-                                              imageEdgeInsets: nil,
-                                              contentHorizontalAlignment: nil,
-                                              contentVerticalAlignment: nil,
-                                              targetSelectorPair: (target: self, #selector(HomeScreenVC.handleButtonTap(sender:))),
-                                              cornerRadius: 10,
-                                              tag: ButtonName.tonar.rawValue)),
-            
-        ]
-        
+        return image
+    
     }
     
+        
 }

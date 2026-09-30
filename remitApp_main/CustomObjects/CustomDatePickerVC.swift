@@ -17,11 +17,13 @@ class CustomDatePickerVC: UIViewController {
             picker.preferredDatePickerStyle = .inline
         } else {
             picker.preferredDatePickerStyle = .wheels
+            picker.setValue(UIColor.black, forKey: "textColor")
         }
         picker.layer.cornerRadius = 10
         picker.locale = Locale(identifier: "ru_RU")
         picker.minimumDate = Date()
         picker.maximumDate = Calendar.current.date(byAdding: .year, value: 1, to: Date())
+        picker.backgroundColor = .white
         return picker
     }()
     
